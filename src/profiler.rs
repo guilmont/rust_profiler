@@ -5,6 +5,30 @@ use std::sync::OnceLock;
 
 use crate::shared::SharedObject;
 
+#[cfg(feature = "profiler")]
+#[macro_export]
+macro_rules! profile_scope {
+    ($id: expr) => {
+        let identifier = $id.to_string();
+        let _obj = crate::profiler::Item::new(identifier.clone());
+        crate::profiler::register(identifier);
+    };
+}
+
+#[cfg(not(feature = "profiler"))]
+#[macro_export]
+macro_rules! profile_scope {
+    ($id: expr) => {};
+}
+
+
+pub fn summary() {
+    let table = &get_registry().lock().table;
+    for (key, meta) in table {
+        println!("{}: count = {} -- time = {:?}", key, meta.count, meta.elapsed);
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -32,9 +56,7 @@ impl Drop for Item {
     }
 }
 
-
-//////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
 struct Metadata {
@@ -53,11 +75,11 @@ impl Metadata {
     }
 }
 
+////////////////////////////////////////////////////////////
 
 struct Registry  {
     table: HashMap<String, Metadata>
 }
-
 
 // Kind of a sungleton so we can profile the whole application
 static GLOBAL_REGISTRY: OnceLock<SharedObject<Registry>> = OnceLock::new();
@@ -69,29 +91,4 @@ pub fn register(identifier: String) {
     get_registry().with_locked_mut_ref(|obj| {
         obj.table.entry(identifier.clone()).or_insert(Metadata::new(identifier));
     });
-}
-
-
-pub fn summary() {
-    println!("{:?}", get_registry().lock().table);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////
-
-#[cfg(feature = "profiler")]
-#[macro_export]
-macro_rules! profile_scope {
-    ($id: expr) => {
-        let identifier = $id.to_string();
-        let _obj = crate::profiler::Item::new(identifier.clone());
-        crate::profiler::register(identifier);
-    };
-}
-
-#[cfg(not(feature = "profiler"))]
-#[macro_export]
-macro_rules! profile_scope {
-    ($id: expr) => {};
 }
