@@ -2,7 +2,6 @@
 
 mod profiler;
 
-/// TODO: We need to handle the case in which we have multiple scopes at the same level in the same function scope
 fn foo() {
     profile_scope!("foo");
     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -11,6 +10,19 @@ fn foo() {
         std::thread::sleep(std::time::Duration::from_millis(100));
         {
             profile_scope!("foo-inner-inner");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        {
+            profile_scope!("foo-inner-inner-inner");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+
+    }
+    {
+        profile_scope!("foo-double");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        {
+            profile_scope!("foo-double-inner");
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
     }
@@ -26,7 +38,6 @@ fn bar() {
 }
 
 fn main() {
-    println!("Hello world");
     foo();
     bar();
     foo();

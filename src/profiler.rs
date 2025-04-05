@@ -64,7 +64,7 @@ struct Metadata {
     identifier: String,
     elapsed: std::time::Duration,
     count: usize,
-    next: Option<SharedObject<Metadata>>,
+    next: Vec<SharedObject<Metadata>>,
 }
 
 impl Metadata {
@@ -73,8 +73,32 @@ impl Metadata {
             identifier,
             elapsed: std::time::Duration::ZERO,
             count:0,
-            next: None,
+            next: Vec::new(),
         }
+    }
+    fn fmt_with_identation(&self, f: &mut std::fmt::Formatter<>, indent: usize) -> std::fmt::Result {
+
+        let mut prefix = "";
+        let mut step = 1;
+        let mut dw = 0;
+        if indent > 0 {
+            prefix = "\x1b[93m└─\x1b[0m ";
+            step = 2;
+            dw = 9;
+        }
+
+        let id = " ".repeat(indent) + &prefix + "\x1b[1;36m" + &self.identifier + "\x1b[0m";
+        writeln!(f, "{:<width$} {:>5}     {:?}", id, self.count, self.elapsed, width = 41 + dw)?;
+
+        for elem in self.next.iter() {
+            elem.lock().unwrap().fmt_with_identation(f, indent + step)?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Display for Metadata {
+    fn fmt(&self,f: &mut std::fmt::Formatter<>) -> std::fmt::Result {
+        self.fmt_with_identation(f, 0)
     }
 }
 
@@ -111,7 +135,7 @@ pub fn register(identifier: String) {
                 obj.ordered.push(meta.clone());
             } else {
                 let last = obj.stack.last().unwrap();
-                last.lock().unwrap().next = Some(meta.clone());
+                last.lock().unwrap().next.push(meta.clone());
             }
             obj.stack.push(meta);
         }
@@ -119,25 +143,9 @@ pub fn register(identifier: String) {
 }
 
 pub fn summary() {
+    println!("{:<43} {}    {}", "\x1b[1;37mFunction:\x1b[0m", "\x1b[1;37mCount:\x1b[0m", "\x1b[1;37mTime:\x1b[0m");
     for meta in get_registry().ordered.iter() {
-        let mut spc : usize = 0;
-        let mut curr = meta.clone();
-        loop {
-            // Lock current element
-            let elem = curr.lock().unwrap();
-            println!("{:width$}{}: count = {} -- time = {:?}",
-                     "", elem.identifier, elem.count, elem.elapsed, width = spc);
-            spc += 4;
+        println!("{}", meta.lock().unwrap());
 
-            match &elem.next {
-                Some(next_arc) => {
-                    let next_elem = next_arc.clone();
-                    drop(elem);
-                    curr = next_elem;
-                },
-                None => break,
-            }
-
-        }
     }
 }
