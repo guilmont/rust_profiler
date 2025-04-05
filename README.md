@@ -53,7 +53,7 @@ $ cargo run --features profiler
 Check out the `examples/basic.rs` for a full example. To run the example with profiling enabled, use:
 
 ```bash
-$ cargo run --examples basic --release --features profiler
+$ cargo run --example basic --release --features profiler
 
 Function:                        Count:    Time:
 foo                                2     901.556622ms
