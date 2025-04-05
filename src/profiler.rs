@@ -76,8 +76,8 @@ impl Metadata {
             next: Vec::new(),
         }
     }
-    fn fmt_with_identation(&self, f: &mut std::fmt::Formatter<>, indent: usize) -> std::fmt::Result {
 
+    fn fmt_with_identation(&self, f: &mut std::fmt::Formatter<>, indent: usize) -> std::fmt::Result {
         let mut prefix = "";
         let mut step = 1;
         let mut dw = 0;

@@ -1,5 +1,8 @@
 use rust_profiler::*;
 
+// To execture with profiling:
+// cargo run --examples basic --feature profiler
+
 fn foo() {
     profile_scope!("foo");
     std::thread::sleep(std::time::Duration::from_millis(100));
