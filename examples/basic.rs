@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-mod profiler;
+use rust_profiler::*;
 
 fn foo() {
     profile_scope!("foo");

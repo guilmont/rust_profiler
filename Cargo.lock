@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "probe"
+name = "rust_profiler"
 version = "0.1.0"
