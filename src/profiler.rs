@@ -44,10 +44,16 @@ impl Item {
 impl Drop for Item {
     fn drop(&mut self) {
         let elapsed = self.start.elapsed().unwrap();
-        let mut obj = get_registry();
-        let meta = obj.table.get_mut(&self.identifier).unwrap();
-        meta.count += 1;
-        meta.elapsed += elapsed;
+        let mut reg = get_registry();
+        {
+            // Update meta data information
+            let mut meta = reg.table.get(&self.identifier).unwrap().lock().unwrap();
+            meta.count += 1;
+            meta.elapsed += elapsed;
+        }{
+            // Remove metadata from stack
+            reg.stack.pop();
+        }
     }
 }
 
@@ -58,6 +64,7 @@ struct Metadata {
     identifier: String,
     elapsed: std::time::Duration,
     count: usize,
+    next: Option<SharedObject<Metadata>>,
 }
 
 impl Metadata {
@@ -66,6 +73,7 @@ impl Metadata {
             identifier,
             elapsed: std::time::Duration::ZERO,
             count:0,
+            next: None,
         }
     }
 }
@@ -73,23 +81,63 @@ impl Metadata {
 ////////////////////////////////////////////////////////////
 
 struct Registry  {
-    table: HashMap<String, Metadata>
+    table: HashMap<String, SharedObject<Metadata>>,
+    ordered: Vec<SharedObject<Metadata>>,
+    stack: Vec<SharedObject<Metadata>>
 }
 
 // Kind of a sungleton so we can profile the whole application
 static GLOBAL_REGISTRY: OnceLock<SharedObject<Registry>> = OnceLock::new();
 fn get_registry() -> MutexGuard<'static, Registry> {
-    let obj = GLOBAL_REGISTRY.get_or_init(|| Arc::new(Mutex::new(Registry{ table: HashMap::new() })));
+    let reg = Registry {
+        table: HashMap::new(),
+        ordered: Vec::new(),
+        stack: Vec::new()
+    };
+    let obj = GLOBAL_REGISTRY.get_or_init(|| Arc::new(Mutex::new(reg)));
     obj.lock().expect("Failed to lock profiler registry!")
 }
 
 pub fn register(identifier: String) {
-    get_registry().table.entry(identifier.clone()).or_insert(Metadata::new(identifier));
+    let meta = Arc::new(Mutex::new(Metadata::new(identifier.clone())));
+    let mut obj = get_registry();
+
+    use std::collections::hash_map::Entry;
+    match obj.table.entry(identifier) {
+        Entry::Occupied(_) => {}
+        Entry::Vacant(elem) => {
+            elem.insert(meta.clone());
+            if obj.stack.is_empty() {
+                obj.ordered.push(meta.clone());
+            } else {
+                let last = obj.stack.last().unwrap();
+                last.lock().unwrap().next = Some(meta.clone());
+            }
+            obj.stack.push(meta);
+        }
+    }
 }
 
 pub fn summary() {
-    let table = &get_registry().table;
-    for (key, meta) in table {
-        println!("{}: count = {} -- time = {:?}", key, meta.count, meta.elapsed);
+    for meta in get_registry().ordered.iter() {
+        let mut spc : usize = 0;
+        let mut curr = meta.clone();
+        loop {
+            // Lock current element
+            let elem = curr.lock().unwrap();
+            println!("{:width$}{}: count = {} -- time = {:?}",
+                     "", elem.identifier, elem.count, elem.elapsed, width = spc);
+            spc += 4;
+
+            match &elem.next {
+                Some(next_arc) => {
+                    let next_elem = next_arc.clone();
+                    drop(elem);
+                    curr = next_elem;
+                },
+                None => break,
+            }
+
+        }
     }
 }
