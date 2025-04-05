@@ -55,7 +55,7 @@ Check out the `examples/basic.rs` for a full example. To run the example with pr
 ```bash
 $ cargo run --example basic --release --features profiler
 
-Function:                        Count:    Time:
+Scopes:                        Count:    Time:
 foo                                2     901.556622ms
  └─ foo-inner                      2     400.689297ms
    └─ foo-inner-inner              2     100.258594ms

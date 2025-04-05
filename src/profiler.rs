@@ -143,7 +143,7 @@ pub fn register(identifier: String) {
 }
 
 pub fn summary() {
-    println!("{:<43} {}    {}", "\x1b[1;37mScope:\x1b[0m", "\x1b[1;37mCount:\x1b[0m", "\x1b[1;37mTime:\x1b[0m");
+    println!("{:<43} {}    {}", "\x1b[1;37mScopes:\x1b[0m", "\x1b[1;37mCount:\x1b[0m", "\x1b[1;37mTime:\x1b[0m");
     for meta in get_registry().ordered.iter() {
         println!("{}", meta.lock().unwrap());
 
