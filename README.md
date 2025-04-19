@@ -15,7 +15,7 @@ Add the following to your `Cargo.toml` dependencies:
 
 ```toml
 [dependencies]
-rust-profiler = "0.1.0"  # Replace with the actual version
+rust_profiler = "0.1.0"  # Replace with the actual version
 ```
 
 ## Usage
@@ -31,12 +31,12 @@ rust-profiler = "0.1.0"  # Replace with the actual version
    }
 
    fn main() {
-       // Profile a specific scope in main
-       profile_scope!("main_scope");
-
-       some_function();
-       some_function();
-
+       {
+          // Profile a specific scope in main
+          profile_scope!("main_scope");
+          some_function();
+          some_function();
+       }
        // At the end of your execution, print the profiling summary.
        profiler_summary!();
    }
